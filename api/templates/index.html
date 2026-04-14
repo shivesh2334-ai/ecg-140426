@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI-Enhanced ECG Workflow 🫀</title>
+  <style>
+    /* ===== Reset & Base ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #f5f5f5;
+      color: #212121;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ===== Sidebar ===== */
+    #sidebar {
+      width: 300px;
+      min-width: 260px;
+      background: #fff;
+      border-right: 1px solid #e0e0e0;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    #sidebar h2 {
+      font-size: 1rem;
+      color: #1976D2;
+      border-bottom: 2px solid #1976D2;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+    }
+    #sidebar label { display: block; font-size: 0.85rem; margin-bottom: 4px; color: #555; }
+    #sidebar input[type="password"],
+    #sidebar input[type="text"],
+    #sidebar textarea {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    #sidebar textarea { resize: vertical; min-height: 80px; }
+    #sidebar a { font-size: 0.78rem; color: #1976D2; }
+    .upload-area {
+      border: 2px dashed #90CAF9;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      color: #1976D2;
+      font-size: 0.85rem;
+      transition: background 0.2s;
+    }
+    .upload-area:hover { background: #E3F2FD; }
+    #ecg_image { display: none; }
+
+    /* ===== Main Area ===== */
+    #main {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+    }
+    .main-header {
+      font-size: 2rem;
+      color: #D32F2F;
+      text-align: center;
+      margin-bottom: 24px;
+      font-weight: 700;
+    }
+
+    /* ===== Two-column layout ===== */
+    #content {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+    #image-panel {
+      flex: 0 0 340px;
+      background: #fff;
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+    #image-panel img {
+      width: 100%;
+      border-radius: 6px;
+      display: none;
+    }
+    #image-placeholder {
+      text-align: center;
+      color: #90A4AE;
+      padding: 60px 0;
+      font-size: 0.9rem;
+    }
+    #image-success {
+      display: none;
+      background: #E8F5E9;
+      color: #388E3C;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      margin-top: 10px;
+    }
+
+    #findings-panel {
+      flex: 1;
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    /* ===== Step Headers ===== */
+    .step-header {
+      font-size: 1rem;
+      color: #1976D2;
+      font-weight: bold;
+      margin: 18px 0 8px;
+    }
+    .step-header:first-child { margin-top: 0; }
+
+    /* ===== Form Controls ===== */
+    .form-row { margin-bottom: 12px; }
+    .form-row label { display: block; font-size: 0.85rem; margin-bottom: 4px; color: #555; }
+    .form-row input[type="number"],
+    .form-row select {
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      width: 180px;
+    }
+    .form-row .calc-result {
+      display: inline-block;
+      background: #EDE7F6;
+      color: #4527A0;
+      border-radius: 5px;
+      padding: 4px 10px;
+      font-size: 0.85rem;
+      margin-left: 10px;
+      font-weight: 600;
+    }
+    .radio-group { display: flex; gap: 16px; }
+    .radio-group label { display: flex; align-items: center; gap: 4px; font-size: 0.9rem; color: #333; }
+    .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer; }
+
+    /* ===== Multiselect checkboxes ===== */
+    .check-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .check-group label {
+      display: flex; align-items: center; gap: 4px;
+      background: #f0f4f8; border: 1px solid #cfd8dc;
+      border-radius: 20px; padding: 4px 12px; font-size: 0.82rem; cursor: pointer;
+    }
+    .check-group label:has(input:checked) { background: #BBDEFB; border-color: #1976D2; color: #1565C0; }
+
+    /* ===== AI Section ===== */
+    .ai-header {
+      font-size: 1.1rem;
+      color: #7B1FA2;
+      font-weight: bold;
+      margin: 20px 0 8px;
+    }
+    .info-box {
+      background: #E3F2FD;
+      border: 1px solid #90CAF9;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      color: #1565C0;
+      margin-bottom: 12px;
+    }
+    .warn-box {
+      background: #FFF8E1;
+      border: 1px solid #FFD54F;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      color: #E65100;
+      margin-bottom: 12px;
+    }
+
+    /* ===== Analyze Button ===== */
+    #analyzeBtn {
+      background: #D32F2F;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 28px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #analyzeBtn:hover { background: #B71C1C; }
+    #analyzeBtn:disabled { background: #EF9A9A; cursor: not-allowed; }
+
+    /* ===== AI Result Box ===== */
+    .ai-box {
+      background: #F3E5F5;
+      border: 1px solid #7B1FA2;
+      border-radius: 10px;
+      padding: 18px;
+      margin-top: 16px;
+      white-space: pre-wrap;
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+
+    /* ===== Spinner ===== */
+    #spinner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      color: #555;
+      font-size: 0.9rem;
+      margin-top: 10px;
+    }
+    .spin {
+      width: 22px; height: 22px;
+      border: 3px solid #ccc;
+      border-top-color: #D32F2F;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== Disclaimer ===== */
+    #disclaimer {
+      background: #FFF3E0;
+      border: 1px solid #FFB74D;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-size: 0.82rem;
+      color: #E65100;
+      margin-top: 24px;
+      text-align: center;
+    }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 900px) {
+      body { flex-direction: column; }
+      #sidebar { width: 100%; border-right: none; border-bottom: 1px solid #e0e0e0; }
+      #content { flex-direction: column; }
+      #image-panel { flex: none; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== SIDEBAR ===== -->
+<aside id="sidebar">
+  <div>
+    <h2>1. Configuration</h2>
+    <label for="api_key">Google Gemini API Key</label>
+    <input type="password" id="api_key" placeholder="AIza..." />
+    <a href="https://aistudio.google.com/app/apikey" target="_blank">Get a free API key here</a>
+  </div>
+
+  <div>
+    <h2>2. Upload ECG</h2>
+    <div class="upload-area" id="uploadArea">
+      <div>📂 Click to upload ECG image</div>
+      <div style="font-size:0.75rem;color:#90A4AE;margin-top:4px;">PNG, JPG, JPEG supported</div>
+      <input type="file" id="ecg_image" accept=".png,.jpg,.jpeg" />
+    </div>
+  </div>
+
+  <div>
+    <label for="clinical_context">Patient Clinical Context</label>
+    <textarea id="clinical_context" placeholder="e.g., 55M, Chest pain, History of HTN"></textarea>
+  </div>
+</aside>
+
+<!-- ===== MAIN ===== -->
+<main id="main">
+  <div class="main-header">🫀 Systematic ECG Interpretation + AI</div>
+
+  <div id="content">
+
+    <!-- Image preview -->
+    <div id="image-panel">
+      <div id="image-placeholder">Upload an ECG image to begin analysis</div>
+      <img id="ecg-preview" src="" alt="Uploaded ECG" />
+      <div id="image-success">✅ Image loaded successfully</div>
+    </div>
+
+    <!-- Findings form -->
+    <div id="findings-panel">
+      <div class="step-header">📝 Manual Findings Checklist</div>
+
+      <!-- Step 0: Calibration -->
+      <div class="step-header">Step 0: Calibration</div>
+      <div class="form-row">
+        <label class="checkbox-label">
+          <input type="checkbox" id="calibration" checked />
+          Standard Calibration (25mm/s, 10mm/mV)
+        </label>
+      </div>
+
+      <!-- Step 1 & 2: Rate & Rhythm -->
+      <div class="step-header">Step 1 &amp; 2: Rate &amp; Rhythm</div>
+      <div class="form-row">
+        <label>Rhythm:</label>
+        <div class="radio-group">
+          <label><input type="radio" name="rhythm" value="Regular" checked onchange="toggleRhythm()" /> Regular</label>
+          <label><input type="radio" name="rhythm" value="Irregular" onchange="toggleRhythm()" /> Irregular</label>
+        </div>
+      </div>
+
+      <div id="regular-inputs" class="form-row">
+        <label>Small squares between R-R peaks:</label>
+        <input type="number" id="rr_sq" value="20" min="1" step="0.5" oninput="calcHeartRate()" />
+        <span class="calc-result" id="hr-display">HR: 75 bpm</span>
+      </div>
+
+      <div id="irregular-inputs" class="form-row" style="display:none;">
+        <label>QRS count in 30 large squares (6-sec strip):</label>
+        <input type="number" id="qrs_count" value="7" min="1" step="1" oninput="calcHeartRate()" />
+        <span class="calc-result" id="hr-display-irr">HR: 70 bpm</span>
+      </div>
+
+      <!-- Hidden heart rate field computed by JS -->
+      <input type="hidden" id="heart_rate_val" value="75" />
+
+      <!-- Step 3: P Waves -->
+      <div class="step-header">Step 3: P Waves</div>
+      <div class="form-row">
+        <label>Morphology:</label>
+        <select id="p_waves">
+          <option>Sinus (Upright I, II, aVF)</option>
+          <option>Absent</option>
+          <option>Inverted</option>
+          <option>Sawtooth Pattern</option>
+          <option>P &gt; QRS Count</option>
+        </select>
+      </div>
+
+      <!-- Step 4: PR Interval -->
+      <div class="step-header">Step 4: PR Interval</div>
+      <div class="form-row">
+        <label>PR small squares (1 sq = 40 ms):</label>
+        <input type="number" id="pr_sq" value="4" min="0" step="0.5" oninput="calcPR()" />
+        <span class="calc-result" id="pr-display">160 ms</span>
+      </div>
+
+      <!-- Step 5: QRS Duration -->
+      <div class="step-header">Step 5: QRS Duration</div>
+      <div class="form-row">
+        <label>QRS small squares (1 sq = 40 ms):</label>
+        <input type="number" id="qrs_sq" value="2" min="0" step="0.5" oninput="calcQRS()" />
+        <span class="calc-result" id="qrs-display">80 ms</span>
+      </div>
+
+      <!-- Step 6: Axis -->
+      <div class="step-header">Step 6: Axis</div>
+      <div class="form-row" style="display:flex;gap:32px;">
+        <div>
+          <label>Lead I:</label>
+          <div class="radio-group">
+            <label><input type="radio" name="lead_I" value="Positive" checked onchange="calcAxis()" /> Positive</label>
+            <label><input type="radio" name="lead_I" value="Negative" onchange="calcAxis()" /> Negative</label>
+          </div>
+        </div>
+        <div>
+          <label>Lead aVF:</label>
+          <div class="radio-group">
+            <label><input type="radio" name="lead_aVF" value="Positive" checked onchange="calcAxis()" /> Positive</label>
+            <label><input type="radio" name="lead_aVF" value="Negative" onchange="calcAxis()" /> Negative</label>
+          </div>
+        </div>
+      </div>
+      <div class="calc-result" id="axis-display" style="margin-top:4px;">Normal Axis</div>
+
+      <!-- Step 7: ST & T Waves -->
+      <div class="step-header">Step 7: ST &amp; T Waves</div>
+      <div class="form-row">
+        <label>Observed Changes (select all that apply):</label>
+        <div class="check-group">
+          <label><input type="checkbox" name="st_change" value="None" checked /> None</label>
+          <label><input type="checkbox" name="st_change" value="ST Elevation" /> ST Elevation</label>
+          <label><input type="checkbox" name="st_change" value="ST Depression" /> ST Depression</label>
+          <label><input type="checkbox" name="st_change" value="T Wave Inversion" /> T Wave Inversion</label>
+          <label><input type="checkbox" name="st_change" value="Peaked T Waves" /> Peaked T Waves</label>
+        </div>
+      </div>
+
+      <!-- Step 8: QT Interval -->
+      <div class="step-header">Step 8: QT Interval</div>
+      <div class="form-row">
+        <label>QT small squares (1 sq = 40 ms):</label>
+        <input type="number" id="qt_sq" value="9" min="1" step="0.5" oninput="calcQTc()" />
+        <span class="calc-result" id="qtc-display">QTc: — ms</span>
+      </div>
+
+      <hr style="margin:20px 0;border:none;border-top:1px solid #e0e0e0;" />
+
+      <!-- Step 9: AI Consultation -->
+      <div class="ai-header">Step 9: AI Cardiologist Consultation</div>
+      <div class="info-box">
+        The AI will analyze the image and cross-reference it with your manual findings above.
+      </div>
+
+      <div id="no-key-warn" class="warn-box" style="display:none;">
+        ⚠️ Please enter your Google Gemini API Key in the sidebar to enable AI diagnosis.
+      </div>
+
+      <button id="analyzeBtn" onclick="analyze()">Generate Diagnosis with Gemini 🤖</button>
+
+      <div id="spinner"><div class="spin"></div> Analyzing ECG Image + User Data...</div>
+
+      <div id="ai-result" style="display:none;">
+        <div class="ai-box" id="ai-text"></div>
+      </div>
+
+      <div id="ai-error" style="display:none;" class="warn-box"></div>
+    </div>
+  </div>
+
+  <div id="disclaimer">
+    ⚠️ <strong>DISCLAIMER:</strong> AI models can hallucinate. This tool is for educational purposes only.
+    Always verify with a human cardiologist.
+  </div>
+</main>
+
+<script>
+  /* ===== Rhythm toggle ===== */
+  function toggleRhythm() {
+    const isRegular = document.querySelector('input[name="rhythm"]:checked').value === "Regular";
+    document.getElementById("regular-inputs").style.display = isRegular ? "" : "none";
+    document.getElementById("irregular-inputs").style.display = isRegular ? "none" : "";
+    calcHeartRate();
+  }
+
+  /* ===== Heart Rate ===== */
+  function calcHeartRate() {
+    const isRegular = document.querySelector('input[name="rhythm"]:checked').value === "Regular";
+    let hr;
+    if (isRegular) {
+      const rrSq = parseFloat(document.getElementById("rr_sq").value) || 1;
+      hr = Math.round(1500 / rrSq);
+      document.getElementById("hr-display").textContent = `HR: ${hr} bpm`;
+    } else {
+      const qrsCount = parseFloat(document.getElementById("qrs_count").value) || 0;
+      hr = Math.round(qrsCount * 10);
+      document.getElementById("hr-display-irr").textContent = `HR: ${hr} bpm`;
+    }
+    document.getElementById("heart_rate_val").value = hr;
+    calcQTc();
+  }
+
+  /* ===== PR Interval ===== */
+  function calcPR() {
+    const prSq = parseFloat(document.getElementById("pr_sq").value) || 0;
+    document.getElementById("pr-display").textContent = `${Math.round(prSq * 40)} ms`;
+  }
+
+  /* ===== QRS Duration ===== */
+  function calcQRS() {
+    const qrsSq = parseFloat(document.getElementById("qrs_sq").value) || 0;
+    document.getElementById("qrs-display").textContent = `${Math.round(qrsSq * 40)} ms`;
+  }
+
+  /* ===== Axis ===== */
+  function calcAxis() {
+    const I = document.querySelector('input[name="lead_I"]:checked').value;
+    const aVF = document.querySelector('input[name="lead_aVF"]:checked').value;
+    let result;
+    if (I === "Positive" && aVF === "Positive") result = "Normal Axis";
+    else if (I === "Negative" && aVF === "Positive") result = "Right Axis Deviation (RAD)";
+    else if (I === "Negative" && aVF === "Negative") result = "Extreme Axis Deviation";
+    else result = "Possible LAD (Check Lead II)";
+    document.getElementById("axis-display").textContent = result;
+  }
+
+  /* ===== QTc ===== */
+  function calcQTc() {
+    const qtSq = parseFloat(document.getElementById("qt_sq").value) || 0;
+    const qtMs = qtSq * 40;
+    const hr = parseFloat(document.getElementById("heart_rate_val").value) || 75;
+    if (hr > 0 && qtMs > 0) {
+      const rrSec = 60 / hr;
+      const qtc = Math.round(qtMs / Math.sqrt(rrSec));
+      document.getElementById("qtc-display").textContent = `QTc: ${qtc} ms`;
+    } else {
+      document.getElementById("qtc-display").textContent = "QTc: — ms";
+    }
+  }
+
+  /* ===== Image preview ===== */
+  document.getElementById("uploadArea").addEventListener("click", () => {
+    document.getElementById("ecg_image").click();
+  });
+
+  document.getElementById("ecg_image").addEventListener("change", function () {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = document.getElementById("ecg-preview");
+      img.src = e.target.result;
+      img.style.display = "block";
+      document.getElementById("image-placeholder").style.display = "none";
+      document.getElementById("image-success").style.display = "block";
+    };
+    reader.readAsDataURL(file);
+  });
+
+  /* ===== Analyze ===== */
+  async function analyze() {
+    const apiKey = document.getElementById("api_key").value.trim();
+    const noKeyWarn = document.getElementById("no-key-warn");
+
+    if (!apiKey) {
+      noKeyWarn.style.display = "block";
+      return;
+    }
+    noKeyWarn.style.display = "none";
+
+    const ecgFile = document.getElementById("ecg_image").files[0];
+    if (!ecgFile) {
+      alert("Please upload an ECG image first.");
+      return;
+    }
+
+    // Gather form data
+    const formData = new FormData();
+    formData.append("api_key", apiKey);
+    formData.append("ecg_image", ecgFile);
+    formData.append("clinical_context", document.getElementById("clinical_context").value);
+    formData.append("calibration", document.getElementById("calibration").checked ? "Standard" : "Non-Standard");
+    formData.append("rhythm", document.querySelector('input[name="rhythm"]:checked').value);
+    formData.append("heart_rate", document.getElementById("heart_rate_val").value);
+    formData.append("p_waves", document.getElementById("p_waves").value);
+    formData.append("pr_ms", Math.round(parseFloat(document.getElementById("pr_sq").value) * 40));
+    formData.append("qrs_ms", Math.round(parseFloat(document.getElementById("qrs_sq").value) * 40));
+    formData.append("axis", document.getElementById("axis-display").textContent);
+
+    const stChecked = Array.from(document.querySelectorAll('input[name="st_change"]:checked')).map(el => el.value);
+    formData.append("st_changes", stChecked.length ? stChecked.join(", ") : "None/Normal");
+
+    formData.append("qt_ms", Math.round(parseFloat(document.getElementById("qt_sq").value) * 40));
+
+    // UI state
+    document.getElementById("analyzeBtn").disabled = true;
+    document.getElementById("spinner").style.display = "flex";
+    document.getElementById("ai-result").style.display = "none";
+    document.getElementById("ai-error").style.display = "none";
+
+    try {
+      const res = await fetch("/analyze", { method: "POST", body: formData });
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        document.getElementById("ai-error").textContent = "❌ " + (data.error || "Unknown error");
+        document.getElementById("ai-error").style.display = "block";
+      } else {
+        document.getElementById("ai-text").textContent = data.result;
+        document.getElementById("ai-result").style.display = "block";
+      }
+    } catch (err) {
+      document.getElementById("ai-error").textContent = "❌ Network error: " + err.message;
+      document.getElementById("ai-error").style.display = "block";
+    } finally {
+      document.getElementById("analyzeBtn").disabled = false;
+      document.getElementById("spinner").style.display = "none";
+    }
+  }
+
+  /* ===== Init calculations ===== */
+  calcHeartRate();
+  calcPR();
+  calcQRS();
+  calcAxis();
+  calcQTc();
+</script>
+</body>
+</html>

@@ -17,11 +17,11 @@ def calculate_qtc(qt_interval, heart_rate):
     return qt_interval / math.sqrt(rr_interval_sec)
 
 
-def get_gemini_response(api_key, image, prompt):
-    """Sends image and text prompt to Gemini"""
+def get_medgemma_response(api_key, image, prompt):
+    """Sends image and text prompt to MedGemma"""
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('models/gemini-robotics-er-1.5-preview')
+        model = genai.GenerativeModel('medgemma-1.5-4b-it')
         response = model.generate_content([prompt, image])
         return response.text
     except Exception as e:
@@ -94,7 +94,7 @@ def analyze():
     }
 
     prompt = f"""
-You are an expert Consultant Cardiologist.
+You are MedGemma, a specialized medical AI model from Google with expertise in cardiology and ECG interpretation.
 I have performed a manual analysis of the attached ECG image and recorded the following findings.
 
 Patient Clinical Context: {findings['Clinical Context']}
@@ -116,7 +116,7 @@ Please perform the following:
 4. NEXT STEPS: Suggest immediate management or further tests.
 """
 
-    result = get_gemini_response(api_key, image, prompt)
+    result = get_medgemma_response(api_key, image, prompt)
     return jsonify({"result": result, "qtc": int(qtc), "heart_rate": int(heart_rate)})
 
 

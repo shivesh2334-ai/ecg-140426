@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI-Enhanced ECG Workflow 🫀</title>
+  <title>AI-Enhanced ECG Workflow 🫀 | MedGemma</title>
   <style>
     /* ===== Reset & Base ===== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -255,7 +255,7 @@
 <aside id="sidebar">
   <div>
     <h2>1. Configuration</h2>
-    <label for="api_key">Google Gemini API Key</label>
+    <label for="api_key">Google MedGemma API Key</label>
     <input type="password" id="api_key" placeholder="AIza..." />
     <a href="https://aistudio.google.com/app/apikey" target="_blank">Get a free API key here</a>
   </div>
@@ -405,12 +405,12 @@
       </div>
 
       <div id="no-key-warn" class="warn-box" style="display:none;">
-        ⚠️ Please enter your Google Gemini API Key in the sidebar to enable AI diagnosis.
+        ⚠️ Please enter your Google MedGemma API Key in the sidebar to enable AI diagnosis.
       </div>
 
-      <button id="analyzeBtn" onclick="analyze()">Generate Diagnosis with Gemini 🤖</button>
+      <button id="analyzeBtn" onclick="analyze()">Generate Diagnosis with MedGemma 🩺</button>
 
-      <div id="spinner"><div class="spin"></div> Analyzing ECG Image + User Data...</div>
+      <div id="spinner"><div class="spin"></div> Analyzing ECG Image with MedGemma...</div>
 
       <div id="ai-result" style="display:none;">
         <div class="ai-box" id="ai-text"></div>
